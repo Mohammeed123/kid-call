@@ -1,4 +1,5 @@
 import Joi from "joi";
+import AppError from "../utils/app-error.js";
 
 export function validateAddingKid(req, res, next){
     const full_name = req.body.full_name;
@@ -16,7 +17,8 @@ export function validateAddingKid(req, res, next){
 
     if(error){
         const messages = error.details.map(d => d.message);
-        return res.status(400).send(messages.join(','));
+        console.log(messages);
+        throw new AppError(messages.join(','), 400, error);
     }
 
     next();
@@ -35,7 +37,7 @@ export function validateGetKidsOf(req, res, next){
 
     if(error){
         const messages = error.details.map(d => d.message);
-        return res.status(400).send(messages.join(','));
+        throw new AppError(messages.join(','), 400, error);
     }
 
     next();

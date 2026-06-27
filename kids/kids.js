@@ -1,3 +1,4 @@
+import AppError from "../utils/app-error.js";
 import createSupabaseClient from "../utils/create-supabase-client.js";
 
 export async function addKid(req, res, next) {
@@ -16,7 +17,7 @@ export async function addKid(req, res, next) {
     });
 
     if(error){
-        return res.status(500).send(error);
+        throw new AppError("Could not add kid", 500, error);
     }
 
     return res.sendStatus(200);
@@ -29,7 +30,7 @@ export async function getKidsOf(req, res, next) {
     const { data, error } = await client.from("kids").select("*").eq("user_id", user_id);
 
     if(error){
-        return res.status(500).send(error);
+        throw new AppError("Could not getting kids", 500, error);
     }
 
     res.send(data);
@@ -37,7 +38,7 @@ export async function getKidsOf(req, res, next) {
 
 export async function getAllKids(req, res, next) {
     if(req.user.role !== 'admin') {
-        return res.send(403).send("You are not allowed to access this resource");
+        throw new AppError("You are not allowed to access this resource", 403, error);
     }
 
     const client = await createSupabaseClient();
@@ -45,7 +46,7 @@ export async function getAllKids(req, res, next) {
     const { data, error } = await client.from("kids").select("*");
 
     if(error){
-        return res.status(500).send(error);
+        throw new AppError("Could not getting all kids", 500, error);
     }
 
     res.send(data);
