@@ -65,7 +65,7 @@ export async function callKid(req, res, next) {
         .single();
 
     if (kidError || !kid) {
-        throw new AppError("Kid not found", 404, kidError);
+        throw new AppError("Kid not found", 400);
     }
 
     return res.status(200).send({
