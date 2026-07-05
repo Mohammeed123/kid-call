@@ -91,6 +91,17 @@ export async function callKid(req, res, next) {
   if (callError) {
     throw new AppError("Could not create call", 400, callError);
   }
+  const { data: callLog, error: callLogError } = await client
+    .from("call_logs")
+    .insert({
+      user_id,
+      kid_id,
+    })
+    .select("*")
+    .single();
+  if (callLogError) {
+    throw new AppError("Could not create call log", 400, callLogError);
+  }
 
   const { data: response, error: responseError } = await client
     .from("kids")
@@ -104,6 +115,28 @@ export async function callKid(req, res, next) {
       kid: response,
     },
   });
+}
+export async function confirmKid(req, res, next) {
+  if (req.user.role !== "admin") {
+    throw new AppError("You are not allowed to access this resource", 403);
+  }
+  const client = await createSupabaseClient();
+  const kid_id = req.params.id;
 
-  res.send({ message: `Calling kid with id ${kid_id}` });
+  const { data, error } = await client
+    .from("kids")
+    .update({ is_confirmed: true })
+    .eq("id", kid_id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new AppError("Could not confirm kid", 500);
+  }
+  res.status(200).json({
+    message: "Kid confirmed successfully",
+    data: {
+      kid: data,
+    },
+  });
 }

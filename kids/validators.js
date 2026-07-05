@@ -61,3 +61,22 @@ export function validateCallKid(req, res, next) {
 
   next();
 }
+
+export function validateConfirmKid(req, res, next) {
+  const kid_id = req.params.id;
+
+  const schema = Joi.object({
+    kid_id: Joi.string().required(),
+  });
+
+  const { error } = schema.validate({
+    kid_id,
+  });
+
+  if (error) {
+    const messages = error.details.map((d) => d.message);
+    throw new AppError(messages.join(","), 400, error);
+  }
+
+  next();
+}
