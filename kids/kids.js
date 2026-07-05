@@ -53,25 +53,50 @@ export async function getAllKids(req, res, next) {
 }
 
 export async function callKid(req, res, next) {
-    const kid_id = req.params.id;
-    const user_id = req.user.id;
-
     const client = await createSupabaseClient();
+  const kid_id = req.params.id;
+  const user_id = req.body?.user_id ?? req.user.id;
+  const { data: kid, error: kidError } = await client
+    .from("kids")
+    .select("id, user_id, is_confirmed")
+    .eq("id", kid_id)
+    .maybeSingle();
+  if (kidError) {
+    throw new AppError("Could not fetch kid", 500, kidError);
+  }
+  if (!kid) {
+    throw new AppError("Kid not found", 400);
+  }
+  if (kid.user_id !== user_id && req.user.role !== "admin") {
+    throw new AppError("You are not allowed to call this kid", 403);
+  }
+  if (!kid.is_confirmed) {
+    throw new AppError("Kid is not confirmed", 400);
+  }
+  const { data: call, error: callError } = await client
+    .from("calls")
+    .insert({
+      user_id,
+      kid_id,
+    })
+    .select("*")
+    .single();
+  if (callError) {
+    throw new AppError("Could not create call", 400, callError);
+  }
 
-    const { data: kid, error: kidError } = await client
-        .from("kids")
-        .select("id")
-        .eq("id", kid_id)
-        .single();
+  const { data: response, error: responseError } = await client
+    .from("kids")
+    .select("*")
+    .eq("id", kid_id)
+    .single();
+  return res.status(200).json({
+    message: "Kid call initiated successfully",
+    data: {
+      call,
+      kid: response,
+    },
+  });
 
-    if (kidError || !kid) {
-        throw new AppError("Kid not found", 400);
-    }
-
-    return res.status(200).send({
-        message: "Call initiated",
-        kid_id: kid.id,
-        user_id,
-        timestamp: new Date().toISOString()
-    });
+  res.send({ message: `Calling kid with id ${kid_id}` });
 }
