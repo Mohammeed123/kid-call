@@ -3,7 +3,7 @@ import { addKid, getKidsOf, callKid } from "./kids.js";
 import {
   validateAddingKid,
   validateGetKidsOf,
-  validateCallKid
+  validateCallKid,
 } from "./validators.js";
 
 export const router = express.Router();
