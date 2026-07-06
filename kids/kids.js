@@ -66,7 +66,7 @@ export async function getAllKids(req, res, next) {
 export async function callKid(req, res, next) {
   const client = await createSupabaseClient();
   const kid_id = req.params.id;
-  const user_id = req.body?.user_id ?? req.user.id;
+  const user_id = req.user.id;
   const { data: kid, error: kidError } = await client
     .from("kids")
     .select("id, user_id, is_confirmed")
