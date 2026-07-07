@@ -24,10 +24,6 @@ export async function addKid(req, res, next) {
 }
 
 export async function getKidsOf(req, res, next) {
-  if (req.params.id === "admin") {
-    next();
-  }
-
   const client = await createSupabaseClient();
   const user_id = req.params.id;
 
@@ -62,12 +58,14 @@ export async function getAllKids(req, res, next) {
 export async function callKid(req, res, next) {
   const client = await createSupabaseClient();
   const kid_id = req.params.id;
-  const user_id =req.user.id;
+  const user_id = req.user.id;
+
   const { data: kid, error: kidError } = await client
     .from("kids")
     .select("id, user_id, is_confirmed")
     .eq("id", kid_id)
     .maybeSingle();
+
   if (kidError) {
     throw new AppError("Could not fetch kid", 500, kidError);
   }
@@ -80,16 +78,23 @@ export async function callKid(req, res, next) {
   if (!kid.is_confirmed) {
     throw new AppError("Kid is not confirmed", 400);
   }
+
   const { data: call, error: callError } = await client
     .from("calls")
-    .insert({
-      user_id,
-      kid_id,
-    })
+    .insert({ user_id, kid_id })
     .select("*")
     .single();
+
   if (callError) {
     throw new AppError("Could not create call", 400, callError);
+  }
+
+  const { error: callLogError } = await client
+    .from("call_logs")
+    .insert({ user_id, kid_id });
+
+  if (callLogError) {
+    throw new AppError("Could not create call log", 400, callLogError);
   }
 
   const { data: response, error: responseError } = await client
@@ -97,6 +102,7 @@ export async function callKid(req, res, next) {
     .select("*")
     .eq("id", kid_id)
     .single();
+
   return res.status(200).json({
     message: "Kid call initiated successfully",
     data: {
@@ -104,6 +110,4 @@ export async function callKid(req, res, next) {
       kid: response,
     },
   });
-
-  res.send({ message: `Calling kid with id ${kid_id}` });
 }
