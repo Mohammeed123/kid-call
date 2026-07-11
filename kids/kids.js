@@ -59,13 +59,11 @@ export async function callKid(req, res, next) {
   const client = await createSupabaseClient();
   const kid_id = req.params.id;
   const user_id = req.user.id;
-
   const { data: kid, error: kidError } = await client
     .from("kids")
     .select("id, user_id, is_confirmed")
     .eq("id", kid_id)
     .maybeSingle();
-
   if (kidError) {
     throw new AppError("Could not fetch kid", 500, kidError);
   }
@@ -78,21 +76,25 @@ export async function callKid(req, res, next) {
   if (!kid.is_confirmed) {
     throw new AppError("Kid is not confirmed", 400);
   }
-
   const { data: call, error: callError } = await client
     .from("calls")
-    .insert({ user_id, kid_id })
+    .insert({
+      user_id,
+      kid_id,
+    })
     .select("*")
     .single();
-
   if (callError) {
     throw new AppError("Could not create call", 400, callError);
   }
-
-  const { error: callLogError } = await client
+  const { data: callLog, error: callLogError } = await client
     .from("call_logs")
-    .insert({ user_id, kid_id });
-
+    .insert({
+      user_id,
+      kid_id,
+    })
+    .select("*")
+    .single();
   if (callLogError) {
     throw new AppError("Could not create call log", 400, callLogError);
   }
@@ -102,12 +104,35 @@ export async function callKid(req, res, next) {
     .select("*")
     .eq("id", kid_id)
     .single();
-
   return res.status(200).json({
     message: "Kid call initiated successfully",
     data: {
       call,
       kid: response,
+    },
+  });
+}
+export async function confirmKid(req, res, next) {
+  if (req.user.role !== "admin") {
+    throw new AppError("You are not allowed to access this resource", 403);
+  }
+  const client = await createSupabaseClient();
+  const kid_id = req.params.id;
+
+  const { data, error } = await client
+    .from("kids")
+    .update({ is_confirmed: true })
+    .eq("id", kid_id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw new AppError("Could not confirm kid", 500);
+  }
+  res.status(200).json({
+    message: "Kid confirmed successfully",
+    data: {
+      kid: data,
     },
   });
 }
